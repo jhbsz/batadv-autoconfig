@@ -1,0 +1,205 @@
+/etc/config/batman-adv
+
+config 'mesh' 'bat0'
+        option 'aggregated_ogms'
+        option 'ap_isolation'
+        option 'bonding'
+        option 'fragmentation'
+        option 'gw_bandwidth'
+        option 'gw_mode'
+        option 'gw_sel_class'
+        option 'log_level'
+        option 'orig_interval'
+        option 'vis_mode'
+        option 'bridge_loop_avoidance'
+        option 'distributed_arp_table'
+        option 'multicast_mode'
+        option 'network_coding'
+        option 'hop_penalty'
+        option 'isolation_mark'
+
+/etc/config/dhcp
+
+config dnsmasq
+        option domainneeded '1'
+        option boguspriv '1'
+        option filterwin2k '0'
+        option localise_queries '1'
+        option rebind_protection '1'
+        option rebind_localhost '1'
+        option local '/lan/'
+        option domain 'lan'
+        option expandhosts '1'
+        option nonegcache '0'
+        option authoritative '1'
+        option readethers '1'
+        option leasefile '/tmp/dhcp.leases'
+        option resolvfile '/tmp/resolv.conf.auto'
+        option localservice '1'
+
+config dhcp 'wan'
+        option interface 'wan'
+        option ignore '1'
+
+config odhcpd 'odhcpd'
+        option maindhcp '0'
+        option leasefile '/tmp/hosts/odhcpd'
+        option leasetrigger '/usr/sbin/odhcpd-update'
+
+config dhcp 'lan'
+        option interface 'lan'
+        option start '100'
+        option limit '150'
+        option leasetime '12h'
+        option dhcpv6 'server'
+        option ra 'server'
+
+config dhcp 'clients'
+        option start '100'
+        option limit '150'
+        option leasetime '12h'
+        option dhcpv6 'server'
+        option ra 'server'
+        option interface 'clients'
+        option ra_management '1'
+
+config dhcp 'mgmt'
+        option start '100'
+        option limit '150'
+        option leasetime '12h'
+        option dhcpv6 'server'
+        option ra 'server'
+        option ra_management '1'
+        option interface 'mgmt'
+
+/etc/config/network
+
+config interface 'loopback'
+        option ifname 'lo'
+        option proto 'static'
+        option ipaddr '127.0.0.1'
+        option netmask '255.0.0.0'
+
+config globals 'globals'
+        option ula_prefix 'fd43:5c6e:7e7b::/48'
+
+config interface 'lan'
+        option type 'bridge'
+        option ifname 'eth0.3'
+        option proto 'static'
+        option ipaddr '192.168.1.1'
+        option netmask '255.255.255.0'
+        option ip6assign '60'
+
+config device 'lan_dev'
+        option name 'eth0.3'
+        option macaddr '64:09:80:18:f4:cf'
+
+config interface 'wan'
+        option ifname 'eth0.2'
+        option proto 'dhcp'
+
+config device 'wan_dev'
+        option name 'eth0.2'
+        option macaddr '64:09:80:18:f4:d0'
+
+config interface 'wan6'
+        option ifname 'eth0.2'
+        option proto 'dhcpv6'
+
+config switch
+        option name 'switch0'
+        option reset '1'
+        option enable_vlan '1'
+
+config switch_vlan
+        option device 'switch0'
+        option vlan '1'
+        option ports '1 2 3 6t'
+
+config switch_vlan
+        option device 'switch0'
+        option vlan '2'
+        option ports '4 6t'
+
+config switch_vlan
+        option device 'switch0'
+        option vlan '3'
+        option ports '0 6t'
+
+config interface 'batmesh'
+        option mtu '1532'
+        option proto 'batadv'
+        option mesh 'bat0'
+
+config device 'vlanc'
+        option type '8021ad'
+        option name 'vlanc'
+        option vid '72'
+        option proto 'none'
+        option ifname '@batmesh'
+
+config interface 'clients'
+        option type 'bridge'
+        option proto 'static'
+        option ipaddr '192.168.100.1'
+        option netmask '255.255.255.0'
+        option ip6assign '60'
+        option ifname 'vlanc eth0.1'
+
+config device 'vlanm'
+        option type '8021ad'
+        option name 'vlanm'
+        option vid '75'
+        option proto 'none'
+        option ifname '@batmesh'
+
+config interface 'mgmt'
+        option type 'bridge'
+        option proto 'static'
+        option ipaddr '192.168.200.1'
+        option netmask '255.255.255.0'
+        option ip6assign '60'
+        option ifname 'vlanm'
+
+/etc/config/wireless 
+
+config wifi-device 'radio0'
+        option type 'mac80211'
+        option channel '36'
+        option hwmode '11a'
+        option path 'pci0000:00/0000:00:00.0/0000:01:00.0'
+        option htmode 'VHT80'
+        option disabled '1'
+
+config wifi-iface
+        option device 'radio0'
+        option network 'lan'
+        option mode 'ap'
+        option ssid 'LEDE'
+        option encryption 'none'
+
+config wifi-device 'radio1'
+        option type 'mac80211'
+        option hwmode '11g'
+        option path 'platform/10180000.wmac'
+        option htmode 'HT20'
+        option txpower '20'
+        option channel '1'
+        option country 'ES'
+
+config wifi-iface
+        option device 'radio1'
+        option network 'batmesh'
+        option encryption 'none'
+        option mesh_id 'bfw'
+        option mode 'mesh'
+        option ifname 'wlan1s'
+
+config wifi-iface
+        option device 'radio1'
+        option mode 'ap'
+        option encryption 'none'
+        option ssid 'users1'
+        option network 'clients'
+        option ifname 'wlan1ap'

@@ -1,0 +1,141 @@
+/etc/config/batman-adv
+
+config 'mesh' 'bat0'
+        option 'aggregated_ogms'
+        option 'ap_isolation'
+        option 'bonding'
+        option 'fragmentation'
+        option 'gw_bandwidth'
+        option 'gw_mode'
+        option 'gw_sel_class'
+        option 'log_level'
+        option 'orig_interval'
+        option 'vis_mode'
+        option 'bridge_loop_avoidance'
+        option 'distributed_arp_table'
+        option 'multicast_mode'
+        option 'network_coding'
+        option 'hop_penalty'
+        option 'isolation_mark'
+
+
+/etc/config/network
+
+config interface 'loopback'
+        option ifname 'lo'
+        option proto 'static'
+        option ipaddr '127.0.0.1'
+        option netmask '255.0.0.0'
+
+config globals 'globals'
+        option ula_prefix 'fd05:5198:af37::/48'
+
+config interface 'lan'
+        option type 'bridge'
+        option ifname 'eth0.1'
+        option proto 'static'
+        option ipaddr '192.168.1.1'
+        option netmask '255.255.255.0'
+        option ip6assign '60'
+
+config device 'lan_dev'
+        option name 'eth0.1'
+        option macaddr '64:09:80:07:88:9b'
+
+config interface 'wan'
+        option ifname 'eth0.2'
+        option proto 'dhcp'
+
+config device 'wan_dev'
+        option name 'eth0.2'
+        option macaddr '64:09:80:07:88:9c'
+
+config interface 'wan6'
+        option ifname 'eth0.2'
+        option proto 'dhcpv6'
+
+config switch
+        option name 'switch0'
+        option reset '1'
+        option enable_vlan '1'
+
+config switch_vlan
+        option device 'switch0'
+        option vlan '1'
+        option ports '0 1 2 3 6t'
+
+config switch_vlan
+        option device 'switch0'
+        option vlan '2'
+        option ports '4 6t'
+
+
+config interface 'batmesh'
+        option mtu '1532'
+        option proto 'batadv'
+        option mesh 'bat0'
+
+config device 'vlanc'
+        option type '8021ad'
+        option name 'vlanc'
+        option vid '72'
+        option proto 'none'
+        option ifname '@batmesh'
+
+config interface 'clients'
+        option type 'bridge'
+        option ifname 'vlanc'
+        option proto 'none'
+
+config device 'vlanm'
+        option type '8021ad'
+        option name 'vlanm'
+        option vid '75'
+        option proto 'none'
+        option ifname '@batmesh'
+
+config interface 'mgmt'
+        option type 'bridge'
+        option ifname 'vlanm'
+        option proto 'dhcp'
+
+
+/etc/config/wireless
+
+config wifi-device 'radio0'
+        option type 'mac80211'
+        option channel '36'
+        option hwmode '11a'
+        option path 'pci0000:00/0000:00:00.0/0000:01:00.0'
+        option htmode 'VHT80'
+        option disabled '1'
+
+config wifi-iface
+        option device 'radio0'
+        option network 'lan'
+        option mode 'ap'
+        option ssid 'LEDE'
+        option encryption 'none'
+
+config wifi-device 'radio1'
+        option type 'mac80211'
+        option channel '1'
+        option hwmode '11g'
+        option path 'platform/10180000.wmac'
+        option htmode 'HT20'
+        option txpower '20'
+        option country '00'
+
+config wifi-iface
+        option device 'radio1'
+        option network 'batmesh'
+        option encryption 'none'
+        option mesh_id 'bfw'
+        option mode 'mesh'
+
+config wifi-iface
+        option device 'radio1'
+        option mode 'ap'
+        option encryption 'none'
+        option ssid 'users2'
+        option network 'clients'
