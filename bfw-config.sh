@@ -18,9 +18,10 @@ MESH_IFNAME="wlan1s"
 MESH_ID="bfw"
 MESH_MODE="mesh"
 MESH_RADIO="radio1"
+MESH_SSID="bfw"
 
 AP_IFNAME="wlan1ap"
-AP_SSID="users"
+AP_SSID="BestFreeWifi"
 AP_RADIO="radio1"
 
 HW=$(cat /proc/cpuinfo |grep machine|cut -d : -f 2|xargs|cut -d " " -f 2)
@@ -123,6 +124,9 @@ then
   MESH_RADIO="radio0"
   AP_RADIO="radio0"
   CLIENT_ETHERNET='eth1'
+  MESH_MODE="adhoc"
+  MESH_ID="C0:FF:EE:C0:FF:EE"
+
 
 cat > /etc/config/${PRENAME}wireless << EOF
 config wifi-device 'radio0'
@@ -142,22 +146,21 @@ define_batadv()
 {
   cat > /etc/config/${PRENAME}batman-adv << EOF
 config 'mesh' 'bat0'
-          option 'aggregated_ogms'
-          option 'ap_isolation'
-          option 'bonding'
-          option 'fragmentation'
-          option 'gw_bandwidth'
-          option 'gw_mode'
-          option 'gw_sel_class'
-          option 'log_level'
-          option 'orig_interval'
-          option 'vis_mode'
-          option 'bridge_loop_avoidance'
-          option 'distributed_arp_table'
-          option 'multicast_mode'
-          option 'network_coding'
-          option 'hop_penalty'
-          option 'isolation_mark'
+        option 'aggregated_ogms'
+        option 'ap_isolation' 1
+        option 'bonding'
+        option 'fragmentation' 1
+        option 'gw_bandwidth'
+        option 'gw_mode'
+        option 'gw_sel_class'
+        option 'log_level'
+        option 'orig_interval' 1000
+        option 'vis_mode'
+        option 'bridge_loop_avoidance' 1
+        option 'distributed_arp_table' 1
+        option 'network_coding'
+        option 'hop_penalty'
+        option 'isolation_mark'
 EOF
 
 }
@@ -250,6 +253,7 @@ client()
     uciup wireless.batmesh.mesh_id $MESH_ID
   else
     uciup wireless.batmesh.bssid $MESH_ID
+    uciup wireless.batmesh.ssid $MESH_SSID
   fi
   uciup wireless.batmesh.ifname $MESH_IFNAME
 
@@ -322,8 +326,14 @@ gateway()
   uciup wireless.batmesh.device $MESH_RADIO
   uciup wireless.batmesh.network 'batmesh'
   uciup wireless.batmesh.encryption 'none'
-  uciup wireless.batmesh.mesh_id $MESH_ID
-  uciup wireless.batmesh.mode 'mesh'
+  uciup wireless.batmesh.mode $MESH_MODE
+  if [ "$MESH_MODE" == "mesh" ];
+  then
+    uciup wireless.batmesh.mesh_id $MESH_ID
+  else
+    uciup wireless.batmesh.bssid $MESH_ID
+    uciup wireless.batmesh.ssid $MESH_SSID
+  fi
   uciup wireless.batmesh.ifname $MESH_IFNAME
 
   # AP
