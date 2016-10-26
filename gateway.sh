@@ -93,15 +93,15 @@ uciup network.clients.netmask $CLIENT_NETMASK
 uciup network.clients.ip6assign '60'
 uciup network.clients.ifname "vlanc ${CLIENT_ETHERNET}"
 
-# VLAN for clients
-uciup network.vlanc device
-uciup network.vlanc.type '8021ad'
-uciup network.vlanc.name 'vlanc'
-uciup network.vlanc.vid $MGMT_VLAN
-uciup network.vlanc.proto 'none'
-uciup network.vlanc.ifname '@batmesh'
+# VLAN for Manager
+uciup network.vlanm device
+uciup network.vlanm.type '8021ad'
+uciup network.vlanm.name 'vlanm'
+uciup network.vlanm.vid $MGMT_VLAN
+uciup network.vlanm.proto 'none'
+uciup network.vlanm.ifname '@batmesh'
 
-# Network for clients
+# Network for Manager
 uciup network.mgmt interface
 uciup network.mgmt.type 'bridge'
 uciup network.mgmt.proto 'static'
