@@ -14,16 +14,16 @@ MGMT_ETHERNET=''
 MGMT_DHCP_START=100
 MGMT_DHCP_END=150
 
-
 MESH_IFNAME="wlan1s"
 MESH_ID="bfw"
+MESH_MODE="mesh"
 MESH_RADIO="radio1"
 
 AP_IFNAME="wlan1ap"
 AP_SSID="users"
 AP_RADIO="radio1"
 
-HW=$(cat /proc/cpuinfo |grep machine|cut -d : -f 2|xargs)
+HW=$(cat /proc/cpuinfo |grep machine|cut -d : -f 2|xargs|cut -d " " -f 2)
 
 DEVICE_TYPE="client"
 
@@ -43,21 +43,26 @@ ucicommit()
 {
   uci commit
 }
+
 ucidelete()
 {
   echo uci delete $1
   uci -q delete $1
 }
 
-packages()
+check_packages()
 {
-  ## check if packagaes were istalled.
-  (opkg list|grep -q batctl) || {
+  (opkg list-installed|grep -q batctl) || return 1;
+  (opkg list-installed|grep -q kmod-batman-adv) || return 1;
+  return 0;
+}
+
+install_packages()
+{
     opkg update
     opkg install batctl kmod-batman-adv
-  }
-
 }
+
 check_type()
 {
     LOCAL_ROUTER_TYPE=$(uci -q get bestfw.route)
@@ -81,13 +86,17 @@ initialize()
     fi
   done
 
-  packages
+  check_packages || install_packages
+  check_packages || {
+    echo "The packages can not install, please check internet connetion."
+    exit
+  }
   check_type
 }
 
 rebuild_wifi()
 {
-if [ "$HW" == "Xiaomi MiWiFi Mini" ];
+if [ "$HW" == "MiWiFi" ];
 then
 cat > /etc/config/${PRENAME}wireless << EOF
   config wifi-device 'radio0'
@@ -109,7 +118,26 @@ cat > /etc/config/${PRENAME}wireless << EOF
 EOF
 fi
 
+if [ "$HW" == "TL-WR710N" ];
+then
+  MESH_RADIO="radio0"
+  AP_RADIO="radio0"
+  CLIENT_ETHERNET='eth1'
+
+cat > /etc/config/${PRENAME}wireless << EOF
+config wifi-device 'radio0'
+        option type 'mac80211'
+        option hwmode '11g'
+        option path 'platform/ar933x_wmac'
+        option channel '9'
+        option htmode 'HT40'
+        option txpower '15'
+        option country 'ES'
+        option distance '100'
+EOF
+fi
 }
+
 define_batadv()
 {
   cat > /etc/config/${PRENAME}batman-adv << EOF
@@ -142,7 +170,7 @@ restart_services()
 
 spcecific_hardware()
 {
-  if [ "$HW" == "Xiaomi MiWiFi Mini" ];
+  if [ "$HW" == "MiWiFi" ];
   then
     uciup network.lan.ifname eth0.3
     uciup network.lan_dev.name eth0.3
@@ -213,17 +241,22 @@ client()
   # MESH
   uciup wireless.batmesh wifi-iface
   ucicommit
-  uciup wireless.batmesh.device 'radio1'
+  uciup wireless.batmesh.device $MESH_RADIO
   uciup wireless.batmesh.network 'batmesh'
   uciup wireless.batmesh.encryption 'none'
-  uciup wireless.batmesh.mesh_id $MESH_ID
-  uciup wireless.batmesh.mode 'mesh'
+  uciup wireless.batmesh.mode $MESH_MODE
+  if [ "$MESH_MODE" == "mesh" ];
+  then
+    uciup wireless.batmesh.mesh_id $MESH_ID
+  else
+    uciup wireless.batmesh.bssid $MESH_ID
+  fi
   uciup wireless.batmesh.ifname $MESH_IFNAME
 
   # AP
   uciup wireless.vap wifi-iface
   ucicommit
-  uciup wireless.vap.device 'radio1'
+  uciup wireless.vap.device $AP_RADIO
   uciup wireless.vap.mode 'ap'
   uciup wireless.vap.encryption 'none'
   uciup wireless.vap.ssid $AP_SSID
@@ -232,23 +265,7 @@ client()
 
 
   # DHCPs
-  uciup dhcp.clients dhcp
-  uciup dhcp.clients.start $CLIENT_DHCP_START
-  uciup dhcp.clients.limit $CLIENT_DHCP_END
-  uciup dhcp.clients.leasetime '12h'
-  uciup dhcp.clients.dhcpv6 'server'
-  uciup dhcp.clients.ra 'server'
-  uciup dhcp.clients.interface 'clients'
-  uciup dhcp.clients.ra_management '1'
 
-  uciup dhcp.mgmt dhcp
-  uciup dhcp.mgmt.start $MGMT_DHCP_START
-  uciup dhcp.mgmt.limit $MGMT_DHCP_END
-  uciup dhcp.mgmt.leasetime '12h'
-  uciup dhcp.mgmt.dhcpv6 'server'
-  uciup dhcp.mgmt.ra 'server'
-  uciup dhcp.mgmt.ra_management '1'
-  uciup dhcp.mgmt.interface 'mgmt'
 
   # firewall
 
@@ -258,24 +275,6 @@ client()
 
 gateway()
 {
-  ## Configurar bat0
-  uciup batman-adv.mesh bat0
-  #uciup batman-adv.mesh.bat0.aggregated_ogms
-  #uciup batman-adv.mesh.bat0.ap_isolation
-  #uciup batman-adv.mesh.bat0.bonding
-  #uciup batman-adv.mesh.bat0.fragmentation
-  #uciup batman-adv.mesh.bat0.gw_bandwidth
-  #uciup batman-adv.mesh.bat0.gw_mode
-  #uciup batman-adv.mesh.bat0.gw_sel_class
-  #uciup batman-adv.mesh.bat0.log_level
-  #uciup batman-adv.mesh.bat0.orig_interval
-  #uciup batman-adv.mesh.bat0.vis_mode
-  #uciup batman-adv.mesh.bat0.bridge_loop_avoidance
-  #uciup batman-adv.mesh.bat0.distributed_arp_table
-  #uciup batman-adv.mesh.bat0.multicast_mode
-  #uciup batman-adv.mesh.bat0.network_coding
-  #uciup batman-adv.mesh.bat0.hop_penalty
-  #uciup batman-adv.mesh.bat0.isolation_mark
 
   # Bat0 device.
   uciup network.batmesh interface
@@ -320,7 +319,7 @@ gateway()
   # MESH
   uciup wireless.batmesh wifi-iface
   ucicommit
-  uciup wireless.batmesh.device 'radio1'
+  uciup wireless.batmesh.device $MESH_RADIO
   uciup wireless.batmesh.network 'batmesh'
   uciup wireless.batmesh.encryption 'none'
   uciup wireless.batmesh.mesh_id $MESH_ID
@@ -330,7 +329,7 @@ gateway()
   # AP
   uciup wireless.vap wifi-iface
   ucicommit
-  uciup wireless.vap.device 'radio1'
+  uciup wireless.vap.device $AP_RADIO
   uciup wireless.vap.mode 'ap'
   uciup wireless.vap.encryption 'none'
   uciup wireless.vap.ssid $AP_SSID
@@ -339,20 +338,20 @@ gateway()
 
 
   # DHCPs
-  uciup dhcp.clients uciup dhcp
+  uciup dhcp.clients dhcp
   uciup dhcp.clients.start $CLIENT_DHCP_START
   uciup dhcp.clients.limit $CLIENT_DHCP_END
   uciup dhcp.clients.leasetime '12h'
-  uciup dhcp.clients.uciup dhcpv6 'server'
+  uciup dhcp.clients.dhcpv6 'server'
   uciup dhcp.clients.ra 'server'
   uciup dhcp.clients.interface 'clients'
   uciup dhcp.clients.ra_management '1'
 
-  uciup dhcp.mgmt uciup dhcp
+  uciup dhcp.mgmt dhcp
   uciup dhcp.mgmt.start $MGMT_DHCP_START
   uciup dhcp.mgmt.limit $MGMT_DHCP_END
   uciup dhcp.mgmt.leasetime '12h'
-  uciup dhcp.mgmt.uciup dhcpv6 'server'
+  uciup dhcp.mgmt.dhcpv6 'server'
   uciup dhcp.mgmt.ra 'server'
   uciup dhcp.mgmt.ra_management '1'
   uciup dhcp.mgmt.interface 'mgmt'
