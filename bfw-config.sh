@@ -24,6 +24,8 @@ AP_IFNAME="wlan1ap"
 AP_SSID="BestFreeWifi"
 AP_RADIO="radio1"
 
+SYSTEM_NAME="bfw-"
+
 HW=$(cat /proc/cpuinfo |grep machine|cut -d : -f 2|xargs|cut -d " " -f 2)
 
 DEVICE_TYPE="client"
@@ -64,6 +66,12 @@ install_packages()
     opkg install batctl kmod-batman-adv
 }
 
+set_system_name()
+{
+    RANDOM_NUMBER=$(date | md5sum | sed -r 's/^(.{6}).*$/\1/;')
+    uciup system.@system[0].hostname "${SYSTEM_NAME}${RANDOM_NUMBER}"
+}
+
 check_type()
 {
     LOCAL_ROUTER_TYPE=$(uci -q get bestfw.route)
@@ -86,6 +94,8 @@ initialize()
         touch "/etc/config/${name}"
     fi
   done
+
+  set_system_name
 
   check_packages || install_packages
   check_packages || {
