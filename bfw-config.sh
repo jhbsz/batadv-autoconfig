@@ -3,14 +3,12 @@
 CLIENT_VLAN=72
 CLIENT_IP='192.168.100.1'
 CLIENT_NETMASK='255.255.255.0'
-CLIENT_ETHERNET='eth0.1'
 CLIENT_DHCP_START=100
 CLIENT_DHCP_END=150
 
 MGMT_VLAN=75
 MGMT_IP='192.168.200.1'
 MGMT_NETMASK='255.255.255.0'
-MGMT_ETHERNET=''
 MGMT_DHCP_START=100
 MGMT_DHCP_END=150
 
@@ -26,9 +24,17 @@ AP_RADIO="radio1"
 
 SYSTEM_NAME="bfw-"
 
+# definim ports ethernet connectats a la xarxa clients o manager.
+
+GW_ETH_CLIENTS="eth0.1"
+GW_ETH_MGMT=""
+OTHER_ETH_CLIENTS=""
+OTHER_ETH_MGMT=""
+
 HW=$(cat /proc/cpuinfo |grep machine|cut -d : -f 2|xargs|cut -d " " -f 2)
 
 DEVICE_TYPE="client"
+BATADV_DEVICE='@batmesh'
 
 PRENAME=''
 FILES='batman-adv network dhcp wireless firewall bestfw'
@@ -133,9 +139,13 @@ if [ "$HW" == "TL-WR710N" ];
 then
   MESH_RADIO="radio0"
   AP_RADIO="radio0"
-  CLIENT_ETHERNET='eth1'
+  GW_ETH_CLIENTS='eth1'
+  GW_ETH_MGMT=""
+  OTHER_ETH_CLIENTS="eth1"
+  OTHER_ETH_MGMT="eth0"
   MESH_MODE="adhoc"
   MESH_ID="C0:FF:EE:C0:FF:EE"
+  BATADV_DEVICE="bat0"
 
 
 cat > /etc/config/${PRENAME}wireless << EOF
@@ -227,13 +237,13 @@ client()
   uciup network.vlanc.name 'vlanc'
   uciup network.vlanc.vid $CLIENT_VLAN
   uciup network.vlanc.proto 'none'
-  uciup network.vlanc.ifname '@batmesh'
+  uciup network.vlanc.ifname "${BATADV_DEVICE}"
 
   # Network for clients
   uciup network.clients interface
   uciup network.clients.type 'bridge'
   uciup network.clients.proto 'none'
-  uciup network.clients.ifname "vlanc"
+  uciup network.clients.ifname "vlanc ${OTHER_ETH_CLIENTS}"
 
   # VLAN for Manager
   uciup network.vlanm device
@@ -241,13 +251,13 @@ client()
   uciup network.vlanm.name 'vlanm'
   uciup network.vlanm.vid $MGMT_VLAN
   uciup network.vlanm.proto 'none'
-  uciup network.vlanm.ifname '@batmesh'
+  uciup network.vlanm.ifname "${BATADV_DEVICE}"
 
   # Network for Manager
   uciup network.mgmt interface
   uciup network.mgmt.type 'bridge'
   uciup network.mgmt.proto 'dhcp'
-  uciup network.mgmt.ifname "vlanm"
+  uciup network.mgmt.ifname "vlanm ${OTHER_ETH_MGMT}"
   ucidelete network.mgmt.ipaddr
   ucidelete network.mgmt.netmask
 
@@ -302,7 +312,7 @@ gateway()
   uciup network.vlanc.name 'vlanc'
   uciup network.vlanc.vid $CLIENT_VLAN
   uciup network.vlanc.proto 'none'
-  uciup network.vlanc.ifname '@batmesh'
+  uciup network.vlanc.ifname "${BATADV_DEVICE}"
 
   # Network for clients
   uciup network.clients interface
@@ -311,7 +321,7 @@ gateway()
   uciup network.clients.ipaddr $CLIENT_IP
   uciup network.clients.netmask $CLIENT_NETMASK
   uciup network.clients.ip6assign '60'
-  uciup network.clients.ifname "vlanc ${CLIENT_ETHERNET}"
+  uciup network.clients.ifname "vlanc ${GW_ETH_CLIENTS}"
 
   # VLAN for Manager
   uciup network.vlanm device
@@ -319,7 +329,7 @@ gateway()
   uciup network.vlanm.name 'vlanm'
   uciup network.vlanm.vid $MGMT_VLAN
   uciup network.vlanm.proto 'none'
-  uciup network.vlanm.ifname '@batmesh'
+  uciup network.vlanm.ifname "${BATADV_DEVICE}"
 
   # Network for Manager
   uciup network.mgmt interface
@@ -328,7 +338,7 @@ gateway()
   uciup network.mgmt.ipaddr $MGMT_IP
   uciup network.mgmt.netmask $MGMT_NETMASK
   uciup network.mgmt.ip6assign '60'
-  uciup network.mgmt.ifname "vlanm ${MGMT_ETHERNET}"
+  uciup network.mgmt.ifname "vlanm ${GW_ETH_MGMT}"
 
   # MESH
   uciup wireless.batmesh wifi-iface
