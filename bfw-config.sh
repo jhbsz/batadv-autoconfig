@@ -41,7 +41,7 @@ FILES='batman-adv network dhcp wireless firewall bestfw'
 
 debug()
 {
-  echo $1
+  echo $@
 }
 uciup()
 {
@@ -145,7 +145,7 @@ then
   AP_RADIO="radio0"
   GW_ETH_CLIENTS="eth1"
   GW_ETH_MGMT=""
-  OTHER_ETH_CLIENTS="eth1"
+  OTHER_ETH_CLIENTS="eth0"
   OTHER_ETH_MGMT=""
   MESH_MODE="adhoc"
   MESH_ID="C0:FF:EE:C0:FF:EE"
