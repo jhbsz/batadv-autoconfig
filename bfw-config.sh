@@ -39,12 +39,16 @@ BATADV_DEVICE='@batmesh'
 PRENAME=''
 FILES='batman-adv network dhcp wireless firewall bestfw'
 
+debug()
+{
+  echo $1
+}
 uciup()
 {
   KEY="$1"
   VALUE="$2"
 
-  echo uci set ${PRENAME}$1=$2
+  debug uci set ${PRENAME}$1=$2
   uci -q set ${PRENAME}$1="$2"
 }
 
@@ -55,8 +59,8 @@ ucicommit()
 
 ucidelete()
 {
-  echo uci delete $1
-  uci -q delete $1
+  debug uci delete ${PRENAME}$1
+  uci -q delete ${PRENAME}$1
 }
 
 check_packages()
@@ -81,7 +85,7 @@ set_system_name()
 check_type()
 {
     LOCAL_ROUTER_TYPE=$(uci -q get bestfw.route)
-    echo $LOCAL_ROUTER_TYPE
+    debug $LOCAL_ROUTER_TYPE
     if [ ! -z "$LOCAL_ROUTER_TYPE" ];
     then
       DEVICE_TYPE=$LOCAL_ROUTER_TYPE
@@ -96,7 +100,7 @@ initialize()
   do
     name=${PRENAME}${i}
     if [ ! -f "/etc/config/${name}" ]; then
-        echo "Create /etc/config/${name}"
+        debug "Create /etc/config/${name}"
         touch "/etc/config/${name}"
     fi
   done
@@ -105,7 +109,7 @@ initialize()
 
   check_packages || install_packages
   check_packages || {
-    echo "The packages can not install, please check internet connetion."
+    debug "The packages can not install, please check internet connetion."
     exit
   }
   check_type
@@ -139,10 +143,10 @@ if [ "$HW" == "TL-WR710N" ];
 then
   MESH_RADIO="radio0"
   AP_RADIO="radio0"
-  GW_ETH_CLIENTS='eth1'
+  GW_ETH_CLIENTS="eth1"
   GW_ETH_MGMT=""
   OTHER_ETH_CLIENTS="eth1"
-  OTHER_ETH_MGMT="eth0"
+  OTHER_ETH_MGMT=""
   MESH_MODE="adhoc"
   MESH_ID="C0:FF:EE:C0:FF:EE"
   BATADV_DEVICE="bat0"
@@ -243,7 +247,12 @@ client()
   uciup network.clients interface
   uciup network.clients.type 'bridge'
   uciup network.clients.proto 'none'
-  uciup network.clients.ifname "vlanc ${OTHER_ETH_CLIENTS}"
+  if [ ! -z "${OTHER_ETH_CLIENTS}" ];
+  then
+    uciup network.clients.ifname "vlanc ${OTHER_ETH_CLIENTS}"
+  else
+    uciup network.clients.ifname "vlanc"
+  fi
 
   # VLAN for Manager
   uciup network.vlanm device
@@ -257,7 +266,12 @@ client()
   uciup network.mgmt interface
   uciup network.mgmt.type 'bridge'
   uciup network.mgmt.proto 'dhcp'
-  uciup network.mgmt.ifname "vlanm ${OTHER_ETH_MGMT}"
+  if [ ! -z "${OTHER_ETH_MGMT}" ];
+  then
+    uciup network.mgmt.ifname "vlanm ${OTHER_ETH_MGMT}"
+  else
+    uciup network.mgmt.ifname "vlanm"
+  fi
   ucidelete network.mgmt.ipaddr
   ucidelete network.mgmt.netmask
 
@@ -321,7 +335,13 @@ gateway()
   uciup network.clients.ipaddr $CLIENT_IP
   uciup network.clients.netmask $CLIENT_NETMASK
   uciup network.clients.ip6assign '60'
-  uciup network.clients.ifname "vlanc ${GW_ETH_CLIENTS}"
+  if [ ! -z "${GW_ETH_CLIENTS}" ];
+  then
+    uciup network.clients.ifname "vlanc ${GW_ETH_CLIENTS}"
+  else
+    uciup network.clients.ifname "vlanc"
+  fi
+
 
   # VLAN for Manager
   uciup network.vlanm device
@@ -338,7 +358,12 @@ gateway()
   uciup network.mgmt.ipaddr $MGMT_IP
   uciup network.mgmt.netmask $MGMT_NETMASK
   uciup network.mgmt.ip6assign '60'
-  uciup network.mgmt.ifname "vlanm ${GW_ETH_MGMT}"
+  if [ ! -z "${GW_ETH_MGMT}" ];
+  then
+    uciup network.mgmt.ifname "vlanm ${GW_ETH_MGMT}"
+  else
+    uciup network.mgmt.ifname "vlanm"
+  fi
 
   # MESH
   uciup wireless.batmesh wifi-iface
@@ -396,7 +421,7 @@ initialize
 define_batadv
 rebuild_wifi
 
-echo "Device type: "$DEVICE_TYPE
+debug "Device type: "$DEVICE_TYPE
 if [ $DEVICE_TYPE == "client" ];
 then
   client
