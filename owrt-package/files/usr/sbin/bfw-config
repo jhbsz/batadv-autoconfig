@@ -85,13 +85,13 @@ set_system_name()
 
 check_type()
 {
-    LOCAL_ROUTER_TYPE=$(uci -q get bestfw.route)
+    LOCAL_ROUTER_TYPE=$(uci -q get bestfw.router)
     debug $LOCAL_ROUTER_TYPE
     if [ ! -z "$LOCAL_ROUTER_TYPE" ];
     then
       DEVICE_TYPE=$LOCAL_ROUTER_TYPE
     else
-      uciup bestfw.route "$DEVICE_TYPE"
+      uciup bestfw.router "$DEVICE_TYPE"
     fi
 }
 
