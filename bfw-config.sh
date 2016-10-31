@@ -144,7 +144,7 @@ if [ "$HW" == "TL-WR710N" ];
 then
   MESH_RADIO="radio0"
   AP_RADIO="radio0"
-  GW_ETH_CLIENTS="eth1"
+  GW_ETH_CLIENTS=""
   GW_ETH_MGMT=""
   OTHER_ETH_CLIENTS="eth0"
   OTHER_ETH_MGMT=""
