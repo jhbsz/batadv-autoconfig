@@ -80,6 +80,7 @@ set_system_name()
 {
     RANDOM_NUMBER=$(date | md5sum | sed -r 's/^(.{6}).*$/\1/;')
     uciup system.@system[0].hostname "${SYSTEM_NAME}${RANDOM_NUMBER}"
+    sysctl -w kernel.hostname="${SYSTEM_NAME}${RANDOM_NUMBER}"
 }
 
 check_type()
